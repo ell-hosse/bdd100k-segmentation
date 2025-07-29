@@ -13,9 +13,10 @@ def find_pairs(images_dir, masks_dir):
     pairs = []
     for img in imgs:
         base = os.path.splitext(img)[0]
-        mask_name = base + '.png'
+        mask_name = base + '_train_color.png'
         if os.path.exists(os.path.join(masks_dir, mask_name)):
             pairs.append((img, mask_name))
+        print(pairs)
     return pairs
 
 def plot_random_pairs(images_dir, masks_dir, num_samples):

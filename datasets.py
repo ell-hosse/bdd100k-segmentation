@@ -10,7 +10,7 @@ class BDD100KDataset(Dataset):
     """
     Expects:
       images_dir/train/*.jpg
-      masks_dir/train/*_train_colors.png
+      masks_dir/train/*_train_color.png
     """
     def __init__(self, images_dir, masks_dir, transform=None):
         self.images_dir = images_dir
@@ -30,7 +30,7 @@ class BDD100KDataset(Dataset):
         img_path = os.path.join(self.images_dir, img_name)
 
         base = os.path.splitext(img_name)[0]
-        mask_name = base + "_train_colors.png"
+        mask_name = base + "_train_color.png"
         mask_path = os.path.join(self.masks_dir, mask_name)
 
         image = Image.open(img_path).convert('RGB')

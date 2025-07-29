@@ -1,19 +1,10 @@
 import segmentation_models_pytorch as smp
 
-
-def build_unet(
-    encoder_name: str = "resnet34",
-    encoder_weights: str = "imagenet",
-    in_channels: int = 3,
-    classes: int = 1,
-):
-    """
-    Returns a U-Net with the given ImageNet-pretrained backbone.
-    """
+def get_model(backbone='resnet34', num_classes=20, pretrained=True):
     model = smp.Unet(
-        encoder_name=encoder_name,
-        encoder_weights=encoder_weights,
-        in_channels=in_channels,
-        classes=classes,
+        encoder_name = backbone,
+        encoder_weights = 'imagenet' if pretrained else None,
+        in_channels = 3,
+        classes = num_classes,
     )
     return model

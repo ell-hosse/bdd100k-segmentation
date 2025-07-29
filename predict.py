@@ -1,59 +1,39 @@
-import os
 import argparse
-from glob import glob
-
 import torch
 import numpy as np
 from PIL import Image
-from tqdm import tqdm
 
-from datasets import SegmentationDataset, get_transforms
-from model import build_unet
+from model import get_model
+from utils import label_to_color_mask
 
+def predict(args):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def parse_args():
-    p = argparse.ArgumentParser()
-    p.add_argument("--img_dir", type=str, required=True,
-                   help="root/images/10k directory (must contain 'test' subfolder)")
-    p.add_argument("--model_path", type=str, required=True,
-                   help="path to saved .pth checkpoint")
-    p.add_argument("--output_dir", type=str, default="test_predictions",
-                   help="where to save predicted masks")
-    return p.parse_args()
+    model = get_model(backbone=args.backbone,
+                      num_classes=args.num_classes)
+    model.load_state_dict(torch.load(args.model_path,
+                                     map_location=device))
+    model.to(device).eval()
 
-
-def predict():
-    args = parse_args()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # load test images
-    test_imgs = sorted(glob(os.path.join(args.img_dir, "test", "*")))
-    dataset = SegmentationDataset(
-        test_imgs, None, transforms=get_transforms(train=False)
-    )
-
-    loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
-
-    # load model
-    model = build_unet().to(device)
-    model.load_state_dict(torch.load(args.model_path, map_location=device))
-    model.eval()
-
-    os.makedirs(args.output_dir, exist_ok=True)
+    img = Image.open(args.image_path).convert('RGB')
+    x = torch.from_numpy(np.array(img)) \
+              .permute(2,0,1).unsqueeze(0).float()/255.0
+    x = x.to(device)
 
     with torch.no_grad():
-        for img_tensor, _ in tqdm(loader, desc="Predicting"):
-            img_tensor = img_tensor.to(device)
-            pred = torch.sigmoid(model(img_tensor))[0, 0].cpu().numpy()
-            mask = (pred > 0.5).astype(np.uint8) * 255
+        out = model(x)
+        pred_ids = out.argmax(dim=1).squeeze(0).cpu().numpy()
 
-            # original filename
-            idx = loader.dataset.images.index(loader.dataset.images[0])  # next yields first index
-            fname = os.path.basename(loader.dataset.images[idx])
-            fname = os.path.splitext(fname)[0] + ".png"
-
-            Image.fromarray(mask).save(os.path.join(args.output_dir, fname))
-
+    pred_color = label_to_color_mask(pred_ids)
+    Image.fromarray(pred_color).save(args.output_path)
+    print(f"Saved prediction to {args.output_path}")
 
 if __name__ == "__main__":
-    predict()
+    p = argparse.ArgumentParser()
+    p.add_argument('--model_path',  type=str, required=True)
+    p.add_argument('--image_path',  type=str, required=True)
+    p.add_argument('--output_path', type=str, required=True)
+    p.add_argument('--backbone',    type=str, default='resnet34')
+    p.add_argument('--num_classes', type=int, default=20)
+    args = p.parse_args()
+    predict(args)

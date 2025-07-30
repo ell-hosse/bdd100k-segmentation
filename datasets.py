@@ -22,7 +22,7 @@ class BDD100KDataset(Dataset):
     def __getitem__(self, idx):
         img_name = self.images[idx]
         base = os.path.splitext(img_name)[0]
-        mask_name = base + "_train_colors.png"
+        mask_name = base + "_train_color.png"
 
         img_path = os.path.join(self.images_dir, img_name)
         msk_path = os.path.join(self.masks_dir,  mask_name)
